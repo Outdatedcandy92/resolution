@@ -9,7 +9,7 @@
 
 	const pathwayInfo: Record<string, { label: string; color: string }> = {
 		PYTHON: { label: 'Python', color: 'ec3750' },
-		WEB_DEV: { label: 'Web Dev', color: '338eda' },
+		RUST: { label: 'Rust', color: '338eda' },
 		GAME_DEV: { label: 'Game Dev', color: '33d6a6' },
 		HARDWARE: { label: 'Hardware', color: 'ff8c37' },
 		DESIGN: { label: 'Design', color: 'a633d6' },

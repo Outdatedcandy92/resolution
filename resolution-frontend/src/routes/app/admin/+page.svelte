@@ -11,7 +11,7 @@
 
 	const pathwayLabels: Record<string, string> = {
 		PYTHON: 'Python',
-		WEB_DEV: 'Web Dev',
+		RUST: 'Rust',
 		GAME_DEV: 'Game Dev',
 		HARDWARE: 'Hardware',
 		DESIGN: 'Design',

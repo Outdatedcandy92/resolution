@@ -7,7 +7,7 @@
 
 	const pathways = [
 		{ id: 'PYTHON', label: 'Python', icon: 'terminal', color: 'ec3750' },
-		{ id: 'WEB_DEV', label: 'Web Dev', icon: 'web', color: '338eda' },
+		{ id: 'RUST', label: 'Rust', icon: 'terminal', color: '338eda' },
 		{ id: 'GAME_DEV', label: 'Game Dev', icon: 'controls', color: '33d6a6' },
 		{ id: 'HARDWARE', label: 'Hardware', icon: 'settings', color: 'ff8c37' },
 		{ id: 'DESIGN', label: 'Design', icon: 'idea', color: 'a633d6' },
