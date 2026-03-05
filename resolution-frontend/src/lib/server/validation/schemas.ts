@@ -36,9 +36,14 @@ export const workshopIdSchema = z.object({
 	workshopId: z.string().min(1, 'Workshop ID is required')
 });
 
+const safeUrl = z.string().url('Please enter a valid URL').max(2000).refine(
+	(val) => /^https?:\/\//i.test(val),
+	{ message: 'URL must use http or https' }
+);
+
 export const projectSubmissionSchema = z.object({
-	codeUrl: z.string().url('Please enter a valid URL').max(2000),
-	playableUrl: z.string().url('Please enter a valid URL').max(2000),
+	codeUrl: safeUrl,
+	playableUrl: safeUrl,
 	howDidYouHear: z.string().min(1, 'This field is required').max(500),
 	doingWell: z.string().min(1, 'This field is required').max(1000),
 	improvements: z.string().min(1, 'This field is required').max(1000),

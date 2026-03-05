@@ -169,6 +169,18 @@ describe('projectSubmissionSchema', () => {
 		expect(projectSubmissionSchema.safeParse({ ...valid, playableUrl: 'not-a-url' }).success).toBe(false);
 	});
 
+	it('rejects javascript: protocol in codeUrl', () => {
+		expect(projectSubmissionSchema.safeParse({ ...valid, codeUrl: 'javascript:alert(1)' }).success).toBe(false);
+	});
+
+	it('rejects javascript: protocol in playableUrl', () => {
+		expect(projectSubmissionSchema.safeParse({ ...valid, playableUrl: 'javascript:alert(1)' }).success).toBe(false);
+	});
+
+	it('rejects data: protocol in codeUrl', () => {
+		expect(projectSubmissionSchema.safeParse({ ...valid, codeUrl: 'data:text/html,<script>alert(1)</script>' }).success).toBe(false);
+	});
+
 	it('rejects codeUrl exceeding 2000 chars', () => {
 		const longUrl = 'https://example.com/' + 'a'.repeat(2000);
 		expect(projectSubmissionSchema.safeParse({ ...valid, codeUrl: longUrl }).success).toBe(false);
