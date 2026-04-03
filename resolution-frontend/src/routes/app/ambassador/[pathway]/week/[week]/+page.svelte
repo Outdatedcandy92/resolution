@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import PlatformBackground from '$lib/components/PlatformBackground.svelte';
-	import { enhance } from '$app/forms';
+	import { deserialize, enhance } from '$app/forms';
 	import { onMount } from 'svelte';
 	import SvelteMarkdown from 'svelte-marked';
 
@@ -24,6 +24,10 @@
 	let monacoEditor: any = null;
 	let saving = $state(false);
 	let showPreview = $state(false);
+	let uploadError = $state('');
+	let uploading = $state(false);
+	let isDragActive = $state(false);
+	let prizeFileInput = $state<HTMLInputElement | null>(null);
 
 	const pathway = $derived(pathwayInfo[data.pathwayId]);
 
@@ -60,6 +64,73 @@
 			editor?.dispose();
 		};
 	});
+
+	async function uploadPrizeFile(file: File) {
+		uploadError = '';
+
+		if (!file.type.startsWith('image/')) {
+			uploadError = 'Please upload an image file.';
+			return;
+		}
+
+		uploading = true;
+
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+
+			const response = await fetch('?/uploadPrizeImage', {
+				method: 'POST',
+				body: formData
+			});
+			const result = deserialize(await response.text());
+
+			if (result.type !== 'success') {
+				uploadError = result.data?.error || 'Failed to upload image.';
+				return;
+			}
+
+			const uploadedUrl = result.data?.url;
+			if (!uploadedUrl || typeof uploadedUrl !== 'string') {
+				uploadError = 'Upload succeeded but no URL was returned.';
+				return;
+			}
+
+			prizeImageUrl = uploadedUrl;
+		} catch {
+			uploadError = 'Network error while uploading image.';
+		} finally {
+			uploading = false;
+		}
+	}
+
+	async function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		isDragActive = false;
+
+		const file = event.dataTransfer?.files?.[0];
+		if (!file) return;
+
+		await uploadPrizeFile(file);
+	}
+
+	async function handleFileInputChange(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+
+		await uploadPrizeFile(file);
+		input.value = '';
+	}
+
+	function handleDropzoneKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+
+		event.preventDefault();
+		if (!uploading) {
+			prizeFileInput?.click();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -112,15 +183,62 @@
 			</div>
 
 			<div class="title-row">
-				<label for="prizeImageUrl">Prize Image URL</label>
-				<input
-					type="url"
-					id="prizeImageUrl"
-					name="prizeImageUrl"
-					bind:value={prizeImageUrl}
-					placeholder="https://example.com/prize.png"
-				/>
+				<label for="prizeImageUrl">Prize Image (1:1 aspect ratio)</label>
+				<div
+					class="dropzone"
+					class:drag-active={isDragActive}
+					role="button"
+					tabindex="0"
+					aria-label="Upload prize image"
+					onkeydown={handleDropzoneKeydown}
+					ondragover={(event) => {
+						event.preventDefault();
+						isDragActive = true;
+					}}
+					ondragleave={() => {
+						isDragActive = false;
+					}}
+					ondrop={handleDrop}
+				>
+					<input
+						id="prize-file"
+						type="file"
+						accept="image/*"
+						onchange={handleFileInputChange}
+						disabled={uploading}
+						bind:this={prizeFileInput}
+					/>
+					<div class="dropzone-content">
+						<p>{uploading ? 'Uploading to Hack Club CDN...' : 'Drop image here or click to upload'}</p>
+						<span>PNG, JPG, WEBP, GIF up to 10MB</span>
+					</div>
+				</div>
+
+				{#if uploadError}
+					<p class="upload-error">{uploadError}</p>
+				{/if}
+
+				{#if prizeImageUrl}
+					<div class="upload-result">
+						<img src={prizeImageUrl} alt="Prize preview" class="prize-preview" />
+						<div class="upload-url-row">
+							<input type="text" id="prizeImageUrl" value={prizeImageUrl} readonly />
+							<button
+								type="button"
+								class="clear-upload-btn"
+								onclick={() => {
+									prizeImageUrl = '';
+									uploadError = '';
+								}}
+							>
+								Clear
+							</button>
+						</div>
+					</div>
+				{/if}
 			</div>
+
+			<input type="hidden" name="prizeImageUrl" value={prizeImageUrl} />
 
 			<input type="hidden" name="content" value={content} />
 
@@ -269,6 +387,93 @@
 		border-radius: 8px;
 		font-family: inherit;
 		background: white;
+	}
+
+	.dropzone {
+		position: relative;
+		border: 2px dashed #af98ff;
+		border-radius: 10px;
+		padding: 1rem;
+		background: rgba(255, 255, 255, 0.9);
+		cursor: pointer;
+	}
+
+	.dropzone.drag-active {
+		border-color: #338eda;
+		background: #f5f9ff;
+	}
+
+	.dropzone input[type='file'] {
+		position: absolute;
+		inset: 0;
+		opacity: 0;
+		cursor: pointer;
+	}
+
+	.dropzone-content {
+		pointer-events: none;
+		text-align: center;
+	}
+
+	.dropzone-content p {
+		margin: 0;
+		font-weight: 600;
+		color: #1a1a2e;
+	}
+
+	.dropzone-content span {
+		display: block;
+		margin-top: 0.25rem;
+		font-size: 0.825rem;
+		color: #8492a6;
+	}
+
+	.upload-error {
+		margin: 0.5rem 0 0;
+		font-size: 0.875rem;
+		color: #ec3750;
+	}
+
+	.upload-result {
+		margin-top: 0.75rem;
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+
+	.prize-preview {
+		width: 56px;
+		height: 56px;
+		object-fit: cover;
+		border-radius: 10px;
+		border: 1px solid #d5dbe3;
+	}
+
+	.upload-url-row {
+		flex: 1;
+		display: flex;
+		gap: 0.5rem;
+		min-width: 280px;
+	}
+
+	.upload-url-row input {
+		flex: 1;
+		background: #f8f9fa;
+	}
+
+	.clear-upload-btn {
+		padding: 0.5rem 0.75rem;
+		border: 1px solid #d5dbe3;
+		border-radius: 8px;
+		background: #fff;
+		cursor: pointer;
+		font-family: inherit;
+		font-size: 0.875rem;
+	}
+
+	.clear-upload-btn:hover {
+		background: #f8f9fa;
 	}
 
 	.editor-wrapper {

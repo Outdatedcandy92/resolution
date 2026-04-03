@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import PlatformBackground from '$lib/components/PlatformBackground.svelte';
 
@@ -15,6 +16,25 @@
 
 	let pathway = $derived(pathwayInfo[data.pathwayId]);
 	const weeks = Array.from({ length: 8 }, (_, i) => i + 1);
+	let loadedImages = $state(new Set<string>());
+
+	function preloadPrizeImages() {
+		const prizeUrls = new Set(
+			weeks.map((week) => getPrizeImageUrl(week)).filter((url) => url.length > 0)
+		);
+
+		for (const url of prizeUrls) {
+			const img = new Image();
+			img.onload = () => {
+				loadedImages = new Set([...loadedImages, url]);
+			};
+			img.src = url;
+		}
+	}
+
+	onMount(() => {
+		preloadPrizeImages();
+	});
 
 	function isWeekPublished(week: number): boolean {
 		return data.publishedWeeks[week]?.isPublished === true;
@@ -57,8 +77,8 @@
 				{@const prizeImageUrl = getPrizeImageUrl(week)}
 				{#if published}
 					<a href="/app/pathway/{data.pathwayId.toLowerCase()}/week/{week}" class="week-card available">
-						{#if prizeImageUrl}
-							<img src={prizeImageUrl} alt="Week {week} prize" class="prize-image" loading="lazy" />
+						{#if prizeImageUrl && loadedImages.has(prizeImageUrl)}
+							<img src={prizeImageUrl} alt="" aria-hidden="true" class="prize-image" />
 						{/if}
 						<img src="https://icons.hackclub.com/api/icons/{pathway.color}/checkmark" alt="Available" class="status-icon" />
 						<span class="week-number">Week {week}</span>
@@ -68,8 +88,8 @@
 					</a>
 				{:else}
 					<div class="week-card locked">
-						{#if prizeImageUrl}
-							<img src={prizeImageUrl} alt="Week {week} prize" class="prize-image locked" loading="lazy" />
+						{#if prizeImageUrl && loadedImages.has(prizeImageUrl)}
+							<img src={prizeImageUrl} alt="" aria-hidden="true" class="prize-image locked" />
 						{/if}
 						<img src="https://icons.hackclub.com/api/icons/8492a6/private" alt="Locked" class="lock-icon" />
 						<span class="week-number">Week {week}</span>
