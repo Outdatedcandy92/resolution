@@ -19,21 +19,41 @@
 	let loadedImages = $state(new Set<string>());
 
 	function preloadPrizeImages() {
+		const pendingImages: HTMLImageElement[] = [];
 		const prizeUrls = new Set(
 			weeks.map((week) => getPrizeImageUrl(week)).filter((url) => url.length > 0)
 		);
 
 		for (const url of prizeUrls) {
 			const img = new Image();
+			pendingImages.push(img);
+
+			const cleanupImage = () => {
+				img.onload = null;
+				img.onerror = null;
+				const index = pendingImages.indexOf(img);
+				if (index !== -1) pendingImages.splice(index, 1);
+			};
+
 			img.onload = () => {
 				loadedImages = new Set([...loadedImages, url]);
+				cleanupImage();
 			};
+			img.onerror = cleanupImage;
 			img.src = url;
 		}
+
+		return () => {
+			for (const img of pendingImages) {
+				img.onload = null;
+				img.onerror = null;
+				img.src = '';
+			}
+		};
 	}
 
 	onMount(() => {
-		preloadPrizeImages();
+		return preloadPrizeImages();
 	});
 
 	function isWeekPublished(week: number): boolean {

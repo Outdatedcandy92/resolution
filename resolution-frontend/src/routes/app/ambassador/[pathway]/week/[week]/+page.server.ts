@@ -7,6 +7,53 @@ import { HACK_CLUB_CDN_API_KEY } from '$env/static/private';
 
 const validPathways = ['PYTHON', 'RUST', 'GAME_DEV', 'HARDWARE', 'DESIGN', 'GENERAL_CODING'] as const;
 type Pathway = typeof validPathways[number];
+const ALLOWED_PRIZE_IMAGE_HOSTS = new Set(['cdn.hackclub.com', 'user-cdn.hackclub-assets.com']);
+
+function detectImageMimeType(bytes: Uint8Array): string | null {
+	if (bytes.length >= 8) {
+		const isPng =
+			bytes[0] === 0x89 &&
+			bytes[1] === 0x50 &&
+			bytes[2] === 0x4e &&
+			bytes[3] === 0x47 &&
+			bytes[4] === 0x0d &&
+			bytes[5] === 0x0a &&
+			bytes[6] === 0x1a &&
+			bytes[7] === 0x0a;
+		if (isPng) return 'image/png';
+	}
+
+	if (bytes.length >= 3) {
+		const isJpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+		if (isJpeg) return 'image/jpeg';
+	}
+
+	if (bytes.length >= 6) {
+		const isGif87a =
+			bytes[0] === 0x47 &&
+			bytes[1] === 0x49 &&
+			bytes[2] === 0x46 &&
+			bytes[3] === 0x38 &&
+			bytes[4] === 0x37 &&
+			bytes[5] === 0x61;
+		const isGif89a =
+			bytes[0] === 0x47 &&
+			bytes[1] === 0x49 &&
+			bytes[2] === 0x46 &&
+			bytes[3] === 0x38 &&
+			bytes[4] === 0x39 &&
+			bytes[5] === 0x61;
+		if (isGif87a || isGif89a) return 'image/gif';
+	}
+
+	if (bytes.length >= 12) {
+		const isRiff = bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46;
+		const isWebp = bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50;
+		if (isRiff && isWebp) return 'image/webp';
+	}
+
+	return null;
+}
 
 function parsePrizeImageUrl(rawValue: FormDataEntryValue | null) {
 	const value = typeof rawValue === 'string' ? rawValue.trim() : '';
@@ -17,8 +64,15 @@ function parsePrizeImageUrl(rawValue: FormDataEntryValue | null) {
 
 	try {
 		const parsed = new URL(value);
-		if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-			return { value: null, error: 'Prize image URL must start with http:// or https://' };
+		if (parsed.protocol !== 'https:') {
+			return { value: null, error: 'Prize image URL must use https://' };
+		}
+
+		if (!ALLOWED_PRIZE_IMAGE_HOSTS.has(parsed.hostname)) {
+			return {
+				value: null,
+				error: 'Prize image URL must be hosted on a Hack Club CDN domain'
+			};
 		}
 
 		return { value, error: null };
@@ -100,8 +154,15 @@ export const actions: Actions = {
 			return fail(400, { error: 'Image must be 10MB or smaller' });
 		}
 
+		const fileBytes = new Uint8Array(await file.arrayBuffer());
+		const detectedMimeType = detectImageMimeType(fileBytes);
+		if (!detectedMimeType) {
+			return fail(400, { error: 'Only JPEG, PNG, GIF, and WebP images are allowed' });
+		}
+
 		const upstreamForm = new FormData();
-		upstreamForm.append('file', file, file.name);
+		const normalizedFile = new File([fileBytes], file.name, { type: detectedMimeType });
+		upstreamForm.append('file', normalizedFile, normalizedFile.name);
 
 		const uploadResponse = await fetch('https://cdn.hackclub.com/api/v4/upload', {
 			method: 'POST',
