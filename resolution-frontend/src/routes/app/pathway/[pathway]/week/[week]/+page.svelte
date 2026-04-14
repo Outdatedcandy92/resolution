@@ -23,13 +23,14 @@
 				</a>
 			{:else}
 				<p>Submissions have been closed for this week</p>
-				<span
+				<button
+					type="button"
 					class="ship-btn ship-btn-disabled"
 					title="Submissions have been closed for this week"
-					aria-label="Submissions have been closed for this week"
+					disabled
 				>
 					Ship Project
-				</span>
+				</button>
 			{/if}
 		</div>
 	{/snippet}
