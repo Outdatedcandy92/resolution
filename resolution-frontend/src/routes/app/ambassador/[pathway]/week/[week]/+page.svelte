@@ -11,15 +11,11 @@
 
 	const pathwayInfo = PATHWAY_INFO;
 
-	const initialTitle = data.content?.title || '';
-	const initialContent = data.content?.content || '';
-	const initialPrizeImageUrl = data.content?.prizeImageUrl || '';
-	const initialPublished = data.content?.isPublished || false;
-
-	let title = $state(initialTitle);
-	let content = $state(initialContent);
-	let prizeImageUrl = $state(initialPrizeImageUrl);
-	let isPublished = $state(initialPublished);
+	let title = $state('');
+	let content = $state('');
+	let prizeImageUrl = $state('');
+	let isPublished = $state(false);
+	let isSubmissionsOpen = $state(true);
 	let editorContainer = $state<HTMLDivElement | null>(null);
 	let monacoEditor: any = null;
 	let saving = $state(false);
@@ -30,6 +26,14 @@
 	let prizeFileInput = $state<HTMLInputElement | null>(null);
 
 	const pathway = $derived(pathwayInfo[data.pathwayId]);
+
+	$effect(() => {
+		title = data.content?.title || '';
+		content = data.content?.content || '';
+		prizeImageUrl = data.content?.prizeImageUrl || '';
+		isPublished = data.content?.isPublished || false;
+		isSubmissionsOpen = data.content?.isSubmissionsOpen ?? true;
+	});
 
 
 
@@ -161,8 +165,22 @@
 					<span class="status-badge" class:published={isPublished}>
 						{isPublished ? 'Published' : 'Draft'}
 					</span>
+					<span class="status-badge submissions" class:closed={!isSubmissionsOpen}>
+						{isSubmissionsOpen ? 'Submissions Open' : 'Submissions Closed'}
+					</span>
 				</div>
 				<div class="header-actions">
+					<form method="POST" action="?/toggleSubmissions" use:enhance={() => {
+						return async ({ result }) => {
+							if (result.type === 'success') {
+								isSubmissionsOpen = !isSubmissionsOpen;
+							}
+						};
+					}}>
+						<button type="submit" class="submission-btn" class:closed={!isSubmissionsOpen}>
+							{isSubmissionsOpen ? 'Close Submissions' : 'Open Submissions'}
+						</button>
+					</form>
 					<button type="button" class="preview-btn" onclick={() => showPreview = !showPreview}>
 						{showPreview ? 'Edit' : 'Preview'}
 					</button>
@@ -336,6 +354,14 @@
 		background: #33d6a6;
 	}
 
+	.status-badge.submissions {
+		background: #33d6a6;
+	}
+
+	.status-badge.submissions.closed {
+		background: #8492a6;
+	}
+
 	.header-actions {
 		display: flex;
 		gap: 0.75rem;
@@ -375,7 +401,27 @@
 		opacity: 0.9;
 	}
 
-	form {
+	.submission-btn {
+		padding: 0.5rem 1rem;
+		background: #ec3750;
+		border: none;
+		color: white;
+		border-radius: 8px;
+		cursor: pointer;
+		font-family: inherit;
+		font-weight: 500;
+		white-space: nowrap;
+	}
+
+	.submission-btn.closed {
+		background: #33d6a6;
+	}
+
+	.submission-btn:hover {
+		opacity: 0.9;
+	}
+
+	.editor-container > form {
 		flex: 1;
 		display: flex;
 		flex-direction: column;

@@ -296,5 +296,44 @@ export const actions: Actions = {
 			.where(eq(pathwayWeekContent.id, existing[0].id));
 
 		return { success: true, isPublished: !existing[0].isPublished };
+	},
+
+	toggleSubmissions: async ({ params, locals }) => {
+		if (!locals.user) {
+			return fail(401, { error: 'Not authenticated' });
+		}
+
+		const pathwayId = params.pathway.toUpperCase() as Pathway;
+		const weekNumber = parseInt(params.week);
+
+		const assignment = await db
+			.select()
+			.from(ambassadorPathway)
+			.where(and(eq(ambassadorPathway.userId, locals.user.id), eq(ambassadorPathway.pathway, pathwayId)))
+			.limit(1);
+
+		if (assignment.length === 0 && !locals.user.isAdmin) {
+			return fail(403, { error: 'Not authorized' });
+		}
+
+		const existing = await db
+			.select()
+			.from(pathwayWeekContent)
+			.where(and(eq(pathwayWeekContent.pathway, pathwayId), eq(pathwayWeekContent.weekNumber, weekNumber)))
+			.limit(1);
+
+		if (existing.length === 0) {
+			return fail(400, { error: 'Save content first before changing submission status' });
+		}
+
+		await db
+			.update(pathwayWeekContent)
+			.set({
+				isSubmissionsOpen: !existing[0].isSubmissionsOpen,
+				updatedAt: new Date()
+			})
+			.where(eq(pathwayWeekContent.id, existing[0].id));
+
+		return { success: true, isSubmissionsOpen: !existing[0].isSubmissionsOpen };
 	}
 };

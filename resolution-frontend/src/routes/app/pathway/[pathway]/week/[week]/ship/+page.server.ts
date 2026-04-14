@@ -35,13 +35,14 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 			and(
 				eq(pathwayWeekContent.pathway, pathwayId),
 				eq(pathwayWeekContent.weekNumber, weekNumber),
-				eq(pathwayWeekContent.isPublished, true)
+				eq(pathwayWeekContent.isPublished, true),
+				eq(pathwayWeekContent.isSubmissionsOpen, true)
 			)
 		)
 		.limit(1);
 
 	if (content.length === 0) {
-		throw error(404, 'This week is not yet available');
+		throw error(404, 'Submissions have been closed for this week');
 	}
 
 	return {

@@ -51,6 +51,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 		pathwayId,
 		weekNumber,
 		title: content[0].title,
-		content: content[0].content
+		content: content[0].content,
+		isSubmissionsOpen: content[0].isSubmissionsOpen
 	};
 };

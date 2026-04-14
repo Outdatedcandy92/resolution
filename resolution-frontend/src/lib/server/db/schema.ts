@@ -240,6 +240,7 @@ export const pathwayWeekContent = pgTable('pathway_week_content', {
 	content: text('content').notNull().default(''),
   prizeImageUrl: text('prize_image_url'),
 	isPublished: boolean('is_published').notNull().default(false),
+  isSubmissionsOpen: boolean('is_submissions_open').notNull().default(true),
 	lastEditedBy: text('last_edited_by').references(() => user.id),
 	createdAt: timestamp('created_at', { mode: 'date' }).notNull().defaultNow(),
 	updatedAt: timestamp('updated_at', { mode: 'date' }).notNull().defaultNow()
