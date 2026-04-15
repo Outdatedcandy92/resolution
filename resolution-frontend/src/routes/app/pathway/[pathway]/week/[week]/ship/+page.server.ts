@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ params, parent }) => {
 	}
 
 	if (!content[0].isSubmissionsOpen) {
-		throw error(404, 'Submissions have been closed for this week');
+		throw error(403, 'Submissions have been closed for this week');
 	}
 
 	return {
