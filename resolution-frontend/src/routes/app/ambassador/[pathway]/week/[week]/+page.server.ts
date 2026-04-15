@@ -172,7 +172,7 @@ export const actions: Actions = {
 		const uploadResponse = await fetch('https://cdn.hackclub.com/api/v4/upload', {
 			method: 'POST',
 			headers: {
-				Authorization: `Bearer ${env.HACK_CLUB_CDN_API_KEY}`
+				Authorization: `Bearer ${cdnApiKey}`
 			},
 			body: upstreamForm
 		});
